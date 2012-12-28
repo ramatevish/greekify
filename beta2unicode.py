@@ -233,8 +233,8 @@ def beta2unicodeTrie():
     t.add("*(\O",    u"\u1F4B")
     t.add("*O)/",    u"\u1F4C")
     t.add("*)/O",    u"\u1F4C")
-    t.add("*O(/",    u"\u1F4F")
-    t.add("*(/O",    u"\u1F4F")
+    t.add("*O(/",    u"\u1F4D")
+    t.add("*(/O",    u"\u1F4D")
     #
     t.add("*U(",     u"\u1F59")
     t.add("*(U",     u"\u1F59")
