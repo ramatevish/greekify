@@ -26,7 +26,7 @@ def strip_xml(path):
         
     #remove anything bracketed
     beta_code = re.sub(r'\<.*?\>', '', merge)
-    
+
     return beta_code
 
 def convert_to_unicode(text):
@@ -51,6 +51,10 @@ def convert_to_unicode(text):
     return converted
 
 def strip_convert_and_store(path):
+    '''
+    Given a path name for an xml file from the Perseus Project, saves the betacode and unicode versions of the text
+    :param path:
+    '''
     #check to make sure we have a valid path
     if os.path.exists(path):
         betacode = strip_xml(path)
@@ -58,8 +62,8 @@ def strip_convert_and_store(path):
         
         #create betacode file and unicode file
         root, ext = os.path.splitext(path)
-        beta = open(root+"-betacode", 'w')
-        uni = open(root+"-unicode", 'w')
+        beta = open(root+".betacode", 'w')
+        uni = open(root+".unicode", 'w')
         beta.write(betacode.encode("utf16"))
         uni.write(unicode.encode("utf16"))
         beta.close()
@@ -69,8 +73,31 @@ def strip_convert_and_store(path):
         return None
         #throw error
 
+def parse_corpus():
+    '''
+    Enters the corpus directory where this script is run from and goes through all xml files, and proccess them using strip_convert_and_store
+    '''
+    files = os.listdir('./corpus')
+    
+    #counter
+    num = len(files)
+    cur = 1
+    print(str(num) + " total files.")
+    
+    #iterate over all xml files in directory and proccess
+    for file in files:
+        
+        print("Processing " + file + " (" + str(cur) + " of " + str(num) + ")")
+        cur += 1
+        
+        root, ext = os.path.splitext(file)
+        if ext == '.xml' and (not os.path.exists("./corpus/" + root + '.betacode')) and (not os.path.exists("./corpus/" + root + '.unicode')):
+            strip_convert_and_store("./corpus/" + file)
+    
+    
 def main():
-    strip_convert_and_store('./corpus/02_gk.xml')
+    #strip_convert_and_store('./corpus/aristid.orat_gk.xml')
+    parse_corpus()
     
 if __name__ == "__main__":
     main()
