@@ -24,8 +24,11 @@ def strip_xml(path):
     for paragraph in text:
         merge += paragraph.toxml()
         
-    #remove anything bracketed
-    beta_code = re.sub(r'\<.*?\>', '', merge)
+    #remove anything bracketed, and punctuation
+    beta_code = re.sub(r"\<.*?\>", "", merge)
+    beta_code = re.sub(r"\.?\,?\:?\;?\'?\-?", "", beta_code)
+    beta_code = re.sub(r"[ \t\r\n]", " ", beta_code)
+    beta_code = re.sub(r"\s+", " ", beta_code)
 
     return beta_code
 
@@ -50,6 +53,30 @@ def convert_to_unicode(text):
     
     return converted
 
+def convert_to_flat_unicode(text):
+    '''
+    Give a string of Beta Code (see http://en.wikipedia.org/wiki/Beta_code) 
+    tokenize and convert to flat unicode
+    :param text:
+    '''
+    #strip accents, etc. from betacode
+    flat_beta_code = re.sub(r"\)?\(?\\?\=?\/?\+?\|?\&?\'?", "", text)
+    
+    #tokenize text on spaces
+    tokens = flat_beta_code.split(' ')
+    
+    #create converter object
+    converter = beta2unicode.beta2unicodeTrie()
+    
+    #iterate over tokens, capitalize them, and convert, adding unicode translation to string
+    converted = ""
+    for word in tokens:
+        unicode, junk = converter.convert(word.upper())
+        converted += unicode+" "
+    converted = converted[:-1]
+    
+    return converted
+
 def strip_convert_and_store(path):
     '''
     Given a path name for an xml file from the Perseus Project, saves the betacode and unicode versions of the text
@@ -59,15 +86,19 @@ def strip_convert_and_store(path):
     if os.path.exists(path):
         betacode = strip_xml(path)
         unicode = convert_to_unicode(betacode)
+        flat_unicode = convert_to_flat_unicode(betacode)
         
         #create betacode file and unicode file
         root, ext = os.path.splitext(path)
         beta = open(root+".betacode", 'w')
         uni = open(root+".unicode", 'w')
-        beta.write(betacode.encode("utf16"))
-        uni.write(unicode.encode("utf16"))
+        flat_uni = open(root+".flat_unicode", 'w')
+        beta.write(betacode)
+        uni.write(unicode)
+        flat_uni.write(flat_unicode)
         beta.close()
         uni.close()
+        flat_uni.close()
         
     else:
         return None
@@ -91,7 +122,8 @@ def parse_corpus():
         cur += 1
         
         root, ext = os.path.splitext(file)
-        if ext == '.xml' and (not os.path.exists("./corpus/" + root + '.betacode')) and (not os.path.exists("./corpus/" + root + '.unicode')):
+        #and (not os.path.exists("./corpus/" + root + '.betacode')) and (not os.path.exists("./corpus/" + root + '.unicode')):
+        if ext == '.xml':
             strip_convert_and_store("./corpus/" + file)
     
     
