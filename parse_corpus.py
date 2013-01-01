@@ -113,6 +113,9 @@ def parse_corpus():
     
             
 def create_dict():
+    '''
+    Using parsed unicode files stored in the corpus folder, adds words from each to corpus object for use later
+    '''
     corpus = Corpus()
     
     files = os.listdir('./corpus')
@@ -120,25 +123,27 @@ def create_dict():
     #counter
     num_files = len(files)
     current = 0
+    
     print(str(num_files) + " total files.")
     
-    #iterate over all xml files in directory and proccess
+    #iterate over all xml files in directory and process
     for file_ in files:
         current += 1
         root, _ = os.path.splitext(file_)
         
-        #if the two requisit pre-processed unicode and flat_unicode files exit, add_to_corpus to dict_
+        #if the pre-processed unicode file exits, add to corpus
         if os.path.exists(os.path.join("./corpus", root + ".unicode")):
             print("Adding " + root)
             
             unicode_ = u"" + open(os.path.join("./corpus", root + ".unicode"),"r").read()
+            print(unicode_)
             
+            #split file and add words
             for word in unicode_.split(" "):
-                print(word)
                 corpus.add_to_corpus(word)
                 
-        print(corpus)
-            
+    print(corpus)
+
 def main():
     #strip_convert_and_store('./corpus/aristid.orat_gk.xml')
     #parse_corpus()
