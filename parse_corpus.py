@@ -1,8 +1,17 @@
 import os
-import sys
 import re
 import beta2unicode
-from xml.dom.minidom import parse, parseString
+from xml.dom.minidom import parseString
+from corpus import Corpus
+import unicodedata
+
+
+def strip_accents(s):
+    '''
+    Strips accents and breathing marks from unicode. Thanks to Martin Miller (http://stackoverflow.com/users/355230/martineau) for this.
+    :param s:
+    '''
+    return u''.join((c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn'))
 
 def strip_xml(path):
     '''
@@ -11,12 +20,11 @@ def strip_xml(path):
     :param path: 
     '''
     #open file
-    root, ext = os.path.splitext(path)
-    file = open(path, 'r')
+    file_ = open(path, 'r')
     
     #parse string, combine paragraphs
-    dom = parseString(file.read())
-    file.close()
+    dom = parseString(file_.read())
+    file_.close()
     text = dom.getElementsByTagName('p')[1:]
     
     
@@ -35,7 +43,7 @@ def strip_xml(path):
 def convert_to_unicode(text):
     '''
     Give a string of Beta Code (see http://en.wikipedia.org/wiki/Beta_code) 
-    tokenize and convert to unicode
+    tokenize and convert to unicode_
     :param text:
     '''
     #tokenize text on spaces
@@ -44,35 +52,11 @@ def convert_to_unicode(text):
     #create converter object
     converter = beta2unicode.beta2unicodeTrie()
     
-    #iterate over tokens, capitalize them, and convert, adding unicode translation to string
-    converted = ""
+    #iterate over tokens, capitalize them, and convert, adding unicode_ translation to string
+    converted = u""
     for word in tokens:
-        unicode, junk = converter.convert(word.upper())
-        converted += unicode+" "
-    converted = converted[:-1]
-    
-    return converted
-
-def convert_to_flat_unicode(text):
-    '''
-    Give a string of Beta Code (see http://en.wikipedia.org/wiki/Beta_code) 
-    tokenize and convert to flat unicode
-    :param text:
-    '''
-    #strip accents, etc. from betacode
-    flat_beta_code = re.sub(r"\)?\(?\\?\=?\/?\+?\|?\&?\'?", "", text)
-    
-    #tokenize text on spaces
-    tokens = flat_beta_code.split(' ')
-    
-    #create converter object
-    converter = beta2unicode.beta2unicodeTrie()
-    
-    #iterate over tokens, capitalize them, and convert, adding unicode translation to string
-    converted = ""
-    for word in tokens:
-        unicode, junk = converter.convert(word.upper())
-        converted += unicode+" "
+        unicode_, _ = converter.convert(word.upper())
+        converted += unicode_ + " "
     converted = converted[:-1]
     
     return converted
@@ -85,20 +69,20 @@ def strip_convert_and_store(path):
     #check to make sure we have a valid path
     if os.path.exists(path):
         betacode = strip_xml(path)
-        unicode = convert_to_unicode(betacode)
-        flat_unicode = convert_to_flat_unicode(betacode)
+        unicode_ = convert_to_unicode(betacode)
         
         #create betacode file and unicode file
-        root, ext = os.path.splitext(path)
+        root, _ = os.path.splitext(path)
         beta = open(root+".betacode", 'w')
         uni = open(root+".unicode", 'w')
-        flat_uni = open(root+".flat_unicode", 'w')
+        
         beta.write(betacode)
-        uni.write(unicode)
-        flat_uni.write(flat_unicode)
+        uni.write(unicode_)
+        
         beta.close()
         uni.close()
-        flat_uni.close()
+        
+        return betacode, unicode_
         
     else:
         return None
@@ -116,20 +100,49 @@ def parse_corpus():
     print(str(num) + " total files.")
     
     #iterate over all xml files in directory and proccess
-    for file in files:
+    for file_ in files:
         
-        print("Processing " + file + " (" + str(cur) + " of " + str(num) + ")")
+        print("Processing " + file_ + " (" + str(cur) + " of " + str(num) + ")")
         cur += 1
         
-        root, ext = os.path.splitext(file)
+        _, ext = os.path.splitext(file_)
         #and (not os.path.exists("./corpus/" + root + '.betacode')) and (not os.path.exists("./corpus/" + root + '.unicode')):
         if ext == '.xml':
-            strip_convert_and_store("./corpus/" + file)
+            strip_convert_and_store("./corpus/" + file_)
+            
     
+            
+def create_dict():
+    corpus = Corpus()
     
+    files = os.listdir('./corpus')
+    
+    #counter
+    num_files = len(files)
+    current = 0
+    print(str(num_files) + " total files.")
+    
+    #iterate over all xml files in directory and proccess
+    for file_ in files:
+        current += 1
+        root, _ = os.path.splitext(file_)
+        
+        #if the two requisit pre-processed unicode and flat_unicode files exit, add_to_corpus to dict_
+        if os.path.exists(os.path.join("./corpus", root + ".unicode")):
+            print("Adding " + root)
+            
+            unicode_ = u"" + open(os.path.join("./corpus", root + ".unicode"),"r").read()
+            
+            for word in unicode_.split(" "):
+                print(word)
+                corpus.add_to_corpus(word)
+                
+        print(corpus)
+            
 def main():
     #strip_convert_and_store('./corpus/aristid.orat_gk.xml')
-    parse_corpus()
+    #parse_corpus()
+    create_dict()
     
 if __name__ == "__main__":
     main()
