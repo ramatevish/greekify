@@ -4,6 +4,7 @@ import beta2unicode
 from xml.dom.minidom import parseString
 from corpus import Corpus
 import unicodedata
+import pickle
 
 
 def strip_accents(s):
@@ -77,7 +78,7 @@ def strip_convert_and_store(path):
         uni = open(root+".unicode", 'w')
         
         beta.write(betacode)
-        uni.write(unicode_)
+        uni.write(unicode_.encode("utf-8", "ignore"))
         
         beta.close()
         uni.close()
@@ -128,25 +129,26 @@ def create_dict():
     
     #iterate over all xml files in directory and process
     for file_ in files:
+        print("Adding " + file_ + " (" + str(current) + " of " + str(num_files) + ") to corpus")
         current += 1
         root, _ = os.path.splitext(file_)
         
         #if the pre-processed unicode file exits, add to corpus
         if os.path.exists(os.path.join("./corpus", root + ".unicode")):
-            print("Adding " + root)
             
-            unicode_ = u"" + open(os.path.join("./corpus", root + ".unicode"),"r").read()
-            print(unicode_)
+            unicode_ = open(os.path.join("./corpus", root + ".unicode"),"r").read().decode("utf-8")
             
             #split file and add words
             for word in unicode_.split(" "):
                 corpus.add_to_corpus(word)
                 
-    print(corpus)
+    file_ = open("./corpus.pickle","w")
+    pickle.dump(corpus,file_)
+    
 
 def main():
     #strip_convert_and_store('./corpus/aristid.orat_gk.xml')
-    #parse_corpus()
+    parse_corpus()
     create_dict()
     
 if __name__ == "__main__":
