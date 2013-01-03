@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import os
 import re
 import beta2unicode
@@ -72,83 +73,98 @@ def strip_convert_and_store(path):
         betacode = strip_xml(path)
         unicode_ = convert_to_unicode(betacode)
         
-        #create betacode file and unicode file
+        #create unicode file
         root, _ = os.path.splitext(path)
-        beta = open(root+".betacode", 'w')
         uni = open(root+".unicode", 'w')
         
-        beta.write(betacode)
         uni.write(unicode_.encode("utf-8", "ignore"))
         
-        beta.close()
         uni.close()
         
         return betacode, unicode_
         
     else:
+        print("Error converting " + path + "\n")
         return None
         #throw error
 
-def parse_corpus():
+def parse_corpus(force_reparse = 0):
     '''
     Enters the corpus directory where this script is run from and goes through all xml files, and proccess them using strip_convert_and_store
     '''
+    if force_reparse == 1:
+        print("Force reparse!\n")
+    
     files = os.listdir('./corpus')
     
-    #counter
+    #only keep xml files
+    files = [file_ for file_ in files if ".xml" in file_]
+    
+    #for counter
     num = len(files)
     cur = 1
-    print(str(num) + " total files.")
+    
+    print("Parsing " + str(num) + " total files.")
     
     #iterate over all xml files in directory and proccess
     for file_ in files:
-        
-        print("Processing " + file_ + " (" + str(cur) + " of " + str(num) + ")")
-        cur += 1
-        
-        _, ext = os.path.splitext(file_)
-        #and (not os.path.exists("./corpus/" + root + '.betacode')) and (not os.path.exists("./corpus/" + root + '.unicode')):
-        if ext == '.xml':
-            strip_convert_and_store("./corpus/" + file_)
+        try:
             
-    
+            print("Processing " + file_ + " (" + str(cur) + " of " + str(num) + ")")
+            cur += 1
             
+            root, ext = os.path.splitext(file_)
+            
+            #if we have forced a reparse, or the unicode doesn't exits, parse
+            if force_reparse == 1 or not os.path.exists("./corpus/" + root + '.unicode'):
+                strip_convert_and_store("./corpus/" + file_)
+        
+        except UnicodeEncodeError:
+            print("UnicodeEncodeError, skipping\n")
+            pass
+
 def create_dict():
     '''
     Using parsed unicode files stored in the corpus folder, adds words from each to corpus object for use later
     '''
     corpus = Corpus()
     
-    files = os.listdir('./corpus')
+    CORPUS_DIR = "./corpus"
+    
+    files = os.listdir(CORPUS_DIR)
+    
+    print(files)
+    #only keep unicode files
+    files = [file_ for file_ in files if ".unicode" in file_]
     
     #counter
     num_files = len(files)
-    current = 0
+    current = 1
     
-    print(str(num_files) + " total files.")
+    print("\nAdding " + str(num_files) + " total files.")
     
     #iterate over all xml files in directory and process
     for file_ in files:
         print("Adding " + file_ + " (" + str(current) + " of " + str(num_files) + ") to corpus")
         current += 1
-        root, _ = os.path.splitext(file_)
         
         #if the pre-processed unicode file exits, add to corpus
-        if os.path.exists(os.path.join("./corpus", root + ".unicode")):
+        if os.path.exists(os.path.join(CORPUS_DIR, file_)):
             
-            unicode_ = open(os.path.join("./corpus", root + ".unicode"),"r").read().decode("utf-8")
+            unicode_ = open(os.path.join(CORPUS_DIR, file_)).read().decode("utf-8")
             
             #split file and add words
             for word in unicode_.split(" "):
                 corpus.add_to_corpus(word)
                 
+    print("Corpus successfully built. Saving corpus to corpus.pickle")
     file_ = open("./corpus.pickle","w")
     pickle.dump(corpus,file_)
     
 
 def main():
     #strip_convert_and_store('./corpus/aristid.orat_gk.xml')
-    parse_corpus()
+    parse_corpus(force_reparse=1)
     create_dict()
     
 if __name__ == "__main__":
