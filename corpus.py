@@ -24,6 +24,9 @@ class CWord:
         for key in self.unique_words.items():
             out += "\t" + self.unique_words[key] + "\n"
         return out
+    
+    def __getitem__(self, word):
+        return self.unique_words[word.decode("utf-8")]
 
     def add_unique_word(self, word):
         res = self.unique_words.get(word)
@@ -50,6 +53,9 @@ class Corpus:
             out += str(self.corpus[key]) + "\n"
         return out
     
+    def __getitem__(self, item):
+        return self.corpus[item.decode("utf-8")]
+    
     def add_to_corpus(self, word):
         flat_word = strip_accents(word)
         
@@ -60,11 +66,9 @@ class Corpus:
             self.corpus[flat_word] = new_flat_word
             self.entries += 1
             self.unique_entries += 1
-            print("Added word " + word)
         else:
             self.corpus[flat_word].add_unique_word(word)
             self.unique_entries += 1
-            print("Added word " + word)
                     
 def main():
     corpus = Corpus()
