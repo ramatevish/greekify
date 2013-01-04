@@ -13,6 +13,7 @@ class CWord:
         self.flat_word = flat_word
         self.unique_words = {}
 
+# need to fix this - doesn't like printing unicode
     def __str__(self):
         out = self.flat_word + ":\n"
         for key in self.unique_words.items():
@@ -20,10 +21,7 @@ class CWord:
         return out
 
     def __repr__(self):
-        out = self.flat_word + ":\n"
-        for key in self.unique_words.items():
-            out += "\t" + self.unique_words[key] + "\n"
-        return out
+        return str(self)
     
     def __getitem__(self, word):
         return self.unique_words[word.decode("utf-8")]
@@ -48,10 +46,7 @@ class Corpus:
         return out
     
     def __repr__(self):
-        out = "Corpus(entries=%d, unique_entries=%d " % (self.entries, self.unique_entries) + "corpus=\n"
-        for key in self.corpus:
-            out += str(self.corpus[key]) + "\n"
-        return out
+        return str(self)
     
     def __getitem__(self, item):
         return self.corpus[item.decode("utf-8")]
