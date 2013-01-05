@@ -6,6 +6,7 @@ import sys
 import traceback
 import re
 import textwrap
+import datetime
 
 CORPUS_LOCATION = "./corpus.pickle"
 MAINTAINER_EMAIL = "alexandermatevish@gmail.com"
@@ -120,11 +121,6 @@ def get_choice(choices):
     
     try:
         choice = raw_input("? ")
-        
-        #check non-numbers
-        if len(choice) == 1:
-            pass
-        
         choice = int(choice)
     
     except NameError:
@@ -139,10 +135,13 @@ def get_choice(choices):
     if isinstance(choice, int) and (choice < 1 or choice > len(choices)):
         err_str = "Integers between 1 and " + str(len(choices)) + " please.\n"
         
+    elif isinstance(choice, str) and len(choice) == 1 and choice in allowed_values:
+        err_str = ""
+        
     if err_str != "":
-        ret = err_str 
+        ret = err_str, 0
     else:
-        ret = choice
+        ret = choice, 1
     
             
     return ret
@@ -150,7 +149,7 @@ def get_choice(choices):
 def print_box(string, title="", pad=False, style="single", width=120):
     '''
     Used to print well-formatted boxes for emphasis. Can pass title=desiredtitle,
-    to print a title, set pad=1 to have interior margins, set 
+    to print a title, set pad=True to have interior margins, set 
     style="single|bold|double" to set border stule, and set width=desiredwidth to
     set the wrap width (this sets the max size, but the width may be smaller if
     no lines are greater than the width)
@@ -257,26 +256,35 @@ def parse_file(path):
     if corpus_ == 1:
         return 1
     
+    #try to create a timestamped file of the res
+    try:
+        time_ = datetime.datetime.now().strftime('%b-%d-%I%M%p-%G')
+        new_file = open("./parsed-" + time_ , "w")
+    except Exception, e:
+        print_error("Failed to create ./parsed-" + time_, e, "Make sure you have write access \
+                        to the directory you are currently in.")
+        return 1
+    
     try:
         file_ = open(path, "r").read()
         parsed_file = file_
     except Exception, e:
-        print("File failed to load: " + e)
         print_error("Failed to load the specified file \""+ path + "\"", e, "Try checking your present \
                         working directory (type 'pwd' into the shell)\n or typing out the entire filepath.")
     
     sentences = len(file_.split("."))
-    current_sentence = 1
+    current_sentence = 0
     
     #regex generation for splitting
     regex_pattern = '|'.join(map(re.escape, [" ", ",", "?", "!", "\"", "\'", "\\", "\/"]))
     
     for sentence in file_.split("."):
+        current_sentence += 1
         parsed_sentence = sentence
         
         for word in re.split(regex_pattern, sentence):            
-            #reset choice for next word
-            choice = ""
+            #reset res for next word
+            res = ""
             
             #print line for clairity
             print_line("bold", width=120)
@@ -297,36 +305,37 @@ def parse_file(path):
                     pass
                 
                 else:
+                    cont = 0
                     #loop until valid selection given
-                    while not isinstance(choice,int) or len(choices) < choice or choice < 1:
+                    while cont == 0:
                         #print options
                         print(choices_string(word, choices))
                         
                         #get raw input and try to make int or command
-                        choice = get_choice(choices)
+                        res, cont = get_choice(choices)
                         
-                        if isinstance(choice, str) and len(choice) != 1:
-                            print(choice)
+                        if isinstance(res, str) and len(res) != 1:
+                            print(res)
                         
-    
-    
-    
-            if choice == 'q':
-                print("Quiting Greekify")
-                return
-            
-            if choice == 'm':
-                #show more options
-                pass
-            try:
-                if not isinstance(choice, str):
-                    print("Replacing " + word + " with " + choices[choice - 1][0].encode( 'utf-8', 'ignore' ) + "\n")
-                    parsed_sentence = parsed_sentence.replace(word, choices[choice - 1][0].encode('utf-8', 'ignore'), 1)
+                if res == 'q':
+                    new_file.write(parsed_sentence)
+                    return 0
                 
-            except KeyError:
-                pass
+                if res == 'm':
+                    #show more options
+                    pass
+                try:
+                    if not isinstance(res, str):
+                        print("Replacing " + word + " with " + choices[res - 1][0].encode( 'utf-8', 'ignore' ) + "\n")
+                        parsed_sentence = parsed_sentence.replace(word, choices[res - 1][0].encode('utf-8', 'ignore'), 1)
+                    
+                except KeyError:
+                    print("derp")
+                
+        parsed_file += parsed_sentence
+        new_file.write(parsed_sentence)
             
-            parsed_file += parsed_sentence
+    
         
 def repl():
     print_box("Beginning flat Greek repl. When prompted, enter your flat greek word and press enter. \
@@ -360,8 +369,7 @@ def repl():
                         err_str = "Integers between 1 and " + str(len(choices)) + " please.\n"
                         
                     if choice == "q":
-                        print("Quiting Greekify")
-                        return
+                        return 0
                         
                     if choice < 1 or choice > len(choices):
                         err_str = "Integers between 1 and " + str(len(choices)) + " please.\n"
@@ -388,7 +396,7 @@ def main():
         if len(sys.argv) == 2 and os.path.exists(sys.argv[1]):
             res = parse_file(sys.argv[1])
             if res == 0:
-                print_box("Shutdown requested...exiting")
+                print_box("Shutdown requested. Writing to file and exiting.")
             elif res == 1:
                 print_box("Unexpected error; quitting", title="❗")
         else:
