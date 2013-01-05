@@ -11,8 +11,8 @@ import datetime
 CORPUS_LOCATION = "./corpus.pickle"
 MAINTAINER_EMAIL = "alexandermatevish@gmail.com"
 ERROR_CONTACT_MAINTAINER = "If this error continues to show up, email the maintainer at " + MAINTAINER_EMAIL \
-                                + " with a copy of all of the programs output, your corpus file, file, and a \
-                                    simple explanation of the error."
+                                + " with a copy of all of the programs output, your corpus file, file, and a " \
+                                + "simple explanation of the error."
 
 def load_corpus(corpus=CORPUS_LOCATION):
     '''
@@ -212,7 +212,7 @@ def print_box(string, title="", pad=False, style="single", width=120):
     
     #the newline in front is used to prevent the box from breaking when unsync. out
     #@todo find a better way to prevent breaking that doesn't require new line
-    print("\n" + top + middle + bottom)
+    print(top + middle + bottom)
     
 def print_line(style="single", width=80):
     '''
@@ -246,15 +246,19 @@ def print_error(simple_errorstring, exception, explanation):
     '''
     print_box(simple_errorstring + ": " + str(exception) + "\n" + explanation + \
                 "\n" + ERROR_CONTACT_MAINTAINER, title="❗")
-
-def parse_file(path):
+    
+    
+def load_all(path):
     print_box("Beginning flat Greek parser. \n \
         For each word a list of potential accented versions of the flat word will be shown. \n \
         When prompted, enter one of the given numbers to replace the original with the selected word.", style="bold")
+    
+    res = 0
+    
     #try to load corpus, if failure print explanation and error and exit with code 1
     corpus_ = load_corpus()
     if corpus_ == 1:
-        return 1
+        res = 1
     
     #try to create a timestamped file of the res
     try:
@@ -263,14 +267,25 @@ def parse_file(path):
     except Exception, e:
         print_error("Failed to create ./parsed-" + time_, e, "Make sure you have write access \
                         to the directory you are currently in.")
-        return 1
+        res = 1
     
+    #try to load the specified file
     try:
         file_ = open(path, "r").read()
-        parsed_file = file_
     except Exception, e:
-        print_error("Failed to load the specified file \""+ path + "\"", e, "Try checking your present \
-                        working directory (type 'pwd' into the shell)\n or typing out the entire filepath.")
+        print_error("Failed to load the specified file \""+ path + "\"", e, "Try checking " \
+                    + "your present working directory (type 'pwd' into the shell) or typing " \
+                    + "out the entire file path.")
+        res = 1
+    
+    return res, corpus_, file_, new_file
+
+def parse_file(path):
+    res, corpus_, file_, new_file = load_all(path)
+    
+    #if errors occured
+    if res == 1:
+        return res
     
     sentences = len(file_.split("."))
     current_sentence = 0
@@ -278,23 +293,28 @@ def parse_file(path):
     #regex generation for splitting
     regex_pattern = '|'.join(map(re.escape, [" ", ",", "?", "!", "\"", "\'", "\\", "\/"]))
     
+    parsed_sentence = ""
     for sentence in file_.split("."):
         current_sentence += 1
+        
+        new_file.write(parsed_sentence)
         parsed_sentence = sentence
         
         for word in re.split(regex_pattern, sentence):            
             #reset res for next word
             res = ""
+
             
-            #print line for clairity
-            print_line("bold", width=120)
+            if (word != "" and word != "," and word != "?" and word != ";" and 
+                word != ":" and word != "-" and word != "\"" and word != "\'" and 
+                word != "\\" and word != "/"):
             
-            #print sentence number, sentence, and line to keep things clear
-            #@todo: write function to print pointer above current word
-            print_box(str(parsed_sentence), title="Parsing sentence (" + str(current_sentence) + " of " + str(sentences) + ")", pad=1)
-            
-            if (word != "" and word != "," and word != "?" and word != ";" and word != ":" and word != "-" and 
-                word != "\"" and word != "\'" and word != "\\" and word != "/"):
+                #print line for clairity
+                print_line("bold", width=120)
+                
+                #print sentence number, sentence, and line to keep things clear
+                #@todo: write function to print pointer above current word
+                print_box(parsed_sentence, title="Parsing sentence (" + str(current_sentence) + " of " + str(sentences) + ")", pad=1)
 
                 #get options and sort
                 choices = lookup_word(corpus_, word)
@@ -331,9 +351,7 @@ def parse_file(path):
                     
                 except KeyError:
                     print("derp")
-                
-        parsed_file += parsed_sentence
-        new_file.write(parsed_sentence)
+
             
     
         
@@ -393,14 +411,14 @@ def main():
         #_file.write(flatten_corpus().encode("utf-8", "ignore"))
         #parse_file("./corpus/flat_test")
         #repl()
-        if len(sys.argv) == 2 and os.path.exists(sys.argv[1]):
+        if len(sys.argv) == 2:
             res = parse_file(sys.argv[1])
             if res == 0:
                 print_box("Shutdown requested. Writing to file and exiting.")
             elif res == 1:
                 print_box("Unexpected error; quitting", title="❗")
         else:
-            print("Error, either too many arguments, or file not found.")
+            print("Error: wrong number of arguments")
             
     # if keyboard interupt print then quit (no traceback)
     except KeyboardInterrupt:
