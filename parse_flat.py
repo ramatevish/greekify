@@ -117,7 +117,7 @@ def choices_string(word, choices):
 def get_choice(choices):
     err_str = ""
     ret = ""
-    allowed_values = "qm"
+    allowed_values = "qa"
     
     try:
         choice = raw_input("? ")
@@ -275,7 +275,7 @@ def load_all(path):
     if corpus_ == 1:
         res = 1
     
-    #try to create a timestamped file of the res
+    #try to create a timestamped file of the result
     try:
         time_ = datetime.datetime.now().strftime('%b-%d-%I%M%p-%G')
         new_file = open("./parsed-" + time_ , "w")
@@ -294,6 +294,26 @@ def load_all(path):
         res = 1
     
     return res, corpus_, file_, new_file
+
+def add_word(corpus, word):
+    print_box("To add a word to the corpus, type in the correct " + \
+              "word and hit enter. You will be prompted to confirm " + \
+              "that the word is correct","Add to corpus")
+    try:
+        valid = 0
+        err_str = ""
+        while not valid:
+            if err_str != "": print(err_str)
+            new_word = raw_input("word? ")
+            if len(new_word) != len(word):
+                err_str = "The word you entered is not of the correct length."
+            else:
+                valid = 1
+    except Exception, e:
+        print_error("Something went wrong", e)
+    
+    if valid:
+        corpus.add_to_corpus(new_word.decode("utf-8"))
 
 def parse_file(path):
     res, corpus_, file_, new_file = load_all(path)
@@ -354,21 +374,23 @@ def parse_file(path):
                             print(res)
                         
                 if res == 'q':
-                    new_file.write(parsed_sentence)
+                    new_file.write(parsed_sentence[:col])
                     return 0
                 
-                if res == 'm':
-                    #show more options
-                    pass
+                if res == 'a':
+                    add_word(corpus_, word)
+
                 try:
                     if not isinstance(res, str):
                         print("Replacing " + word + " with " + choices[res - 1][0].encode( 'utf-8', 'ignore' ) + "\n")
                         parsed_sentence = parsed_sentence[:col] + \
                             parsed_sentence[col:].replace(word, choices[res - 1][0].encode('utf-8', 'ignore'), 1)
-                    
+                        col += len(word)
                 except KeyError:
                     print("derp")
-
+                    
+    corpus_file = open(CORPUS_LOCATION, "w")
+    pickle.dump(corpus_, corpus_file)
             
     
         
