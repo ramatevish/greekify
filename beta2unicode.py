@@ -111,6 +111,8 @@ def beta2unicodeTrie():
     t.add_to_corpus("S@",     u"\u03C2@")
     t.add_to_corpus("S_",     u"\u03C2_")
     t.add_to_corpus("S",      u"\u03C3")
+    t.add_to_corpus("S2",      u"\u03C2")
+    
 
     t.add_to_corpus("T",      u"\u03C4")
     t.add_to_corpus("U",      u"\u03C5")
