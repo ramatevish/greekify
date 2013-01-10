@@ -42,7 +42,18 @@ def strip_xml(path):
 
     return beta_code
 
-def convert_to_unicode(text):
+def convert_to_terminal_sigmas(ascii_word, converter):
+    ascii_word = ascii_word.upper()
+    #get last occurrence of S in word - need to see if python has better strrchr function
+    index = len(ascii_word)
+    try:
+        index = (len(ascii_word) - 1) - ascii_word[::-1].index('S')
+        if ascii_word[index:] == "S":
+            return ascii_word + "2"
+    except:
+            return ascii_word
+
+def convert_beta_to_unicode(text):
     '''
     Give a string of Beta Code (see http://en.wikipedia.org/wiki/Beta_code) 
     tokenize and convert to unicode_
@@ -57,8 +68,9 @@ def convert_to_unicode(text):
     #iterate over tokens, capitalize them, and convert, adding unicode_ translation to string
     converted = u""
     for word in tokens:
-        unicode_, _ = converter.convert(word.upper())
-        converted += unicode_ + " "
+        word_ = convert_to_terminal_sigmas(word, converter)
+        unicode_word, _ = converter.convert(word_)
+        converted += unicode_word + " "
     converted = converted[:-1]
     
     return converted
@@ -71,7 +83,7 @@ def strip_convert_and_store(path):
     #check to make sure we have a valid path
     if os.path.exists(path):
         betacode = strip_xml(path)
-        unicode_ = convert_to_unicode(betacode)
+        unicode_ = convert_beta_to_unicode(betacode)
         
         #create unicode file
         root, _ = os.path.splitext(path)
