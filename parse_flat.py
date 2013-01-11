@@ -54,21 +54,12 @@ def lookup_word(corpus, word):
     try:
         cword = corpus[word]
         choices = get_word_array(cword)
+        
+        #sort list on occurrence (2nd element)
         choices = sorted(choices, key=lambda tup: tup[1], reverse=True)
         
     except KeyError:
-        try:
-            key_error_string = ""
-            if word != None:
-                key_error_string = "Couldn't find " + word + " in the corpus, Trying " + word + "."
-                cword = corpus[word]
-                choices = get_word_array(cword)
-                choices = sorted(choices, key=lambda tup: tup[1], reverse=True)
-            else:
-                key_error_string += "Couldn't find " + word + " in the corpus. \nPerhaps there is an unrecognized punctuation mark or incorrect character?"
-        except KeyError:
-            key_error_string = "Couldn't find " + word + " in the corpus. \nPerhaps there is  an unrecognized punctuation mark or incorrect character?"
-        
+        key_error_string = "Couldn't find " + word + " in the corpus. \nPerhaps there is  an unrecognized punctuation mark or incorrect character?"
         print_box(key_error_string, "")
     
     return choices
@@ -82,43 +73,49 @@ def choices_string(word, choices):
     '''
     string = "Replace " + word.decode("utf-8") + " with:\n"
     i = 1
-    for op in choices:
-        string += str(i) + ") " + op[0] + ": " + str(op[1]) + "\n"
-        i += 1
+    try:
+        for op in choices:
+            string += str(i) + ") " + op[0] + ": " + str(op[1]) + "\n"
+            i += 1
+    except TypeError:
+        pass
     
     return string
 
 def get_choice(choices):
     err_str = ""
     ret = ""
-    allowed_values = "qa"
+    
+    #quit, add word, save
+    allowed_values = "qas"
     
     try:
         choice = raw_input("? ")
         choice = int(choice)
-    
-    except NameError:
+        
+        if isinstance(choice, int) and (choice < 1 or choice > len(choices)):
+            err_str = "Integers between 1 and " + str(len(choices)) + " or " \
+            + ", ".join(allowed_values) + " please.\n"
+       
+        else:
+            ret = choice
+            
+#    except NameError:
+#        print("NameError")
+#        if len(choice) == 1 and choice in allowed_values:
+#            ret = choice
+#        else:
+#            err_str = "Integers between 1 and " + str(len(choices)) + " or " \
+#                + ", ".join(allowed_values) + " please.\n"
+        
+    except ValueError:
         if len(choice) == 1 and choice in allowed_values:
             ret = choice
         else:
-            err_str = "Integers between 1 and " + str(len(choices)) + " please.\n"
-        
-    except ValueError:
-        err_str = "Integers between 1 and " + str(len(choices)) + " please.\n"
-        
-    if isinstance(choice, int) and (choice < 1 or choice > len(choices)):
-        err_str = "Integers between 1 and " + str(len(choices)) + " please.\n"
-        
-    elif isinstance(choice, str) and len(choice) == 1 and choice in allowed_values:
-        err_str = ""
-        
-    if err_str != "":
-        ret = err_str, 0
-    else:
-        ret = choice, 1
+            err_str = "Integers between 1 and " + str(len(choices)) + " or " \
+                + ", ".join(allowed_values) + " please.\n"
     
-            
-    return ret
+    return err_str, ret
 
 def print_box(string, title="", pad=False, style="single", width=120):
     '''
@@ -290,29 +287,38 @@ def add_word(corpus, word):
         corpus.add_to_corpus(new_word.decode("utf-8"))
 
 def parse_file(path):
-    res, corpus_, file_, new_file = load_all(path)
+    choice, corpus_, file_, new_file = load_all(path)
     
     #if errors occured
-    if res == 1:
-        return res
+    if choice == 1:
+        return choice
     
-    sentences = len(file_.split("."))
+    #split on periods, keep track of current
+    sentences = [s for s in file_.split(".") if s != "\n"]
+    sentence_tot = len(sentences)
     current_sentence = 0
     
     #regex generation for splitting
     regex_pattern = '|'.join(map(re.escape, [" ", ",", "?", "!", "\"", "\'", "\\", "\/"]))
     
     parsed_sentence = ""
-    for sentence in file_.split("."):
+    parsed_file = ""
+    current_col = 0
+    last_save = 0
+    for sentence in sentences:
         current_sentence += 1
-        col = 0
         
-        new_file.write(parsed_sentence)
+        #write previously parse sentence
+        new_file.write(parsed_sentence[last_save:])
+        
+        current_col = 0
+        last_save = 0
+        
         parsed_sentence = sentence
 
         for word in re.split(regex_pattern, sentence):            
-            #reset res for next word
-            res = ""
+            #reset choice for next word
+            choice = ""
 
             if (word != "" and word != "," and word != "?" and word != ";" and 
                 word != ":" and word != "-" and word != "\"" and word != "\'" and 
@@ -321,47 +327,68 @@ def parse_file(path):
                 print_line("bold", width=120)
             
                 #get pointer string
-                colored_string, col = color_string(word, parsed_sentence, col)
+                colored_string, current_col = color_string(word, parsed_sentence, current_col)
 
                 #print sentence number, sentence, and line to keep things clear
-                print_box(colored_string, title="Parsing sentence (" + str(current_sentence) + " of " + str(sentences) + ")", pad=1)
+                print_box(colored_string, title="Parsing sentence (" + str(current_sentence) + " of " + str(sentence_tot) + ")", pad=1)
 
                 #get options and sort
                 choices = lookup_word(corpus_, word)
                 
-                #if we can't find word in the corpus
-                if not choices:
-                    #@todo allow for custom addition to dictionary
-                    pass
-                
-                else:
-                    cont = 0
+                #if we find matching words
+                if choices is not None:
                     #loop until valid selection given
-                    while cont == 0:
+                    error_string = ""
+                    done_with_word = False
+                    while done_with_word is False:
                         #print options
                         print(choices_string(word, choices))
                         
                         #get raw input and try to make int or command
-                        res, cont = get_choice(choices)
+                        error_string, choice = get_choice(choices)
                         
-                        if isinstance(res, str) and len(res) != 1:
-                            print(res)
-                        
-                if res == 'q':
-                    new_file.write(parsed_sentence[:col])
-                    return 0
-                
-                if res == 'a':
-                    add_word(corpus_, word)
-
-                try:
-                    if not isinstance(res, str):
-                        print("Replacing " + word + " with " + choices[res - 1][0].encode( 'utf-8', 'ignore' ) + "\n")
-                        parsed_sentence = parsed_sentence[:col] + \
-                            parsed_sentence[col:].replace(word, choices[res - 1][0].encode('utf-8', 'ignore'), 1)
-                        col += len(word)
-                except KeyError:
-                    print("derp")
+                        #if our choice is valid
+                        if error_string is "":
+                            
+                            if isinstance(choice, str) and len(choice) != 1:
+                                print(choice)
+                                
+                            if choice == 'q':
+                                new_file.write(parsed_sentence[:current_col])
+                                return 0
+                            
+                            elif choice == 'a':
+                                add_word(corpus_, word)
+                                
+                            elif choice == 's':
+                                if current_col == last_save:
+                                    print("File is already up to date\n")
+                                else:
+                                    print_box("Saving work to " + new_file.name + ".", 
+                                                "Saving File")
+                                    print(parsed_sentence[last_save:current_col])
+                                    new_file.write(parsed_sentence[last_save:current_col])
+                                    last_save = current_col
+        
+                            #if our input is a number
+                            try:
+                                if not isinstance(choice, str):
+                                    print("Replacing " + word + " with " + choices[choice - 1][0].encode( 'utf-8', 'ignore' ) + "\n")
+                                    parsed_sentence = parsed_sentence[:current_col] + \
+                                        parsed_sentence[current_col:].replace(word, choices[choice - 1][0].encode('utf-8', 'ignore'), 1)
+                                    current_col += len(word)
+                                    done_with_word = True
+                                    
+                            except KeyError:
+                                print("derp")
+                        else:
+                            print(error_string)
+        #save sentence to file
+        parsed_file += parsed_sentence + ". "
+        new_file.write(parsed_sentence + ". ")
+        
+    
+    new_file.write(parsed_file[:-2])
                     
     corpus_file = open(CORPUS_LOCATION, "w")
     pickle.dump(corpus_, corpus_file)
