@@ -24,7 +24,7 @@ class CWord:
         return str(self)
     
     def __getitem__(self, word):
-        return self.unique_words[word.decode("utf-8")]
+        return self.unique_words[word]
 
     def add_unique_word(self, word):
         res = self.unique_words.get(word)
@@ -49,7 +49,7 @@ class Corpus:
         return str(self)
     
     def __getitem__(self, item):
-        return self.corpus[item.decode("utf-8")]
+        return self.corpus[item]
     
     def add_to_corpus(self, word):
         flat_word = strip_accents(word)
