@@ -6,14 +6,18 @@ import traceback
 import re
 import textwrap
 import datetime
+import string
+import os
 
-CORPUS_LOCATION = "./corpus.pickle"
-MAINTAINER_EMAIL = "alexandermatevish@gmail.com"
-ERROR_CONTACT_MAINTAINER = "If this error continues to show up, email the maintainer at " + MAINTAINER_EMAIL \
+CORPUS_LOCATION = u"./corpus.pickle"
+MAINTAINER_EMAIL = u"alexandermatevish@gmail.com"
+ERROR_CONTACT_MAINTAINER = u"If this error continues to show up, email the maintainer at " + MAINTAINER_EMAIL \
                                 + " with a copy of all of the programs output, your corpus file, file, and a " \
                                 + "simple explanation of the error."
-START_HIGHLIGHT = "\x1B[31;40m"
-END_HIGHLIGHT = "\x1B[0m" 
+#len 8
+START_HIGHLIGHT = u"\x1B[31;40m"\
+#len 4
+END_HIGHLIGHT = u"\x1B[0m" 
 
 def load_corpus(corpus=CORPUS_LOCATION):
     '''
@@ -25,7 +29,8 @@ def load_corpus(corpus=CORPUS_LOCATION):
     try:
         file_ = open(corpus,"r")
         corpus = pickle.load(file_)
-        print_box("Corpus loaded (Entries: "+ str(corpus.entries) + ", Unique Entries: " + str(corpus.unique_entries) + ")", "✔")
+        print_box(u"Corpus loaded (Entries: "+ str(corpus.entries) + ", Unique Entries: " \
+                  + str(corpus.unique_entries) + ")", u"✔")
         return corpus
     
     except Exception, e:
@@ -71,7 +76,7 @@ def choices_string(word, choices):
     :string word: the flat word
     :list choices: the list of tuples
     '''
-    string = "Replace " + word.decode("utf-8") + " with:\n"
+    string = "Replace " + word + " with:\n"
     i = 1
     try:
         for op in choices:
@@ -87,7 +92,7 @@ def get_choice(choices):
     ret = ""
     
     #quit, add word, save
-    allowed_values = "qas"
+    allowed_values = "qa"
     
     try:
         choice = raw_input("? ")
@@ -131,18 +136,18 @@ def print_box(string, title="", pad=False, style="single", width=120):
     :string style: box border style
     :int width: line wrap width
     '''
-    styles = {"double": "╔═╗║╚═╝", "single": "┌─┐│└─┘", "bold": "┏━┓┃┗━┛"}
+    styles = {"double": u"╔═╗║╚═╝", "single": u"┌─┐│└─┘", "bold": u"┏━┓┃┗━┛"}
     
     # check to make sure the style is valid, else default to single
     if style not in styles:
         style = "single"
     
     #set and decode
-    box_style = styles[style].decode("utf-8",)
+    box_style = styles[style]
     
-    #decode the string, split on defined linebreaks
-    unwrapped_lines = string.decode("utf-8").split("\n")
-    
+    #split on defined linebreaks
+    unwrapped_lines = string.split("\n")
+
     #wrap lines that go over width
     lines = []
     for line in unwrapped_lines:
@@ -160,7 +165,7 @@ def print_box(string, title="", pad=False, style="single", width=120):
     
     #create title
     padding = (" " if title != "" else "")
-    top = box_style[0] + box_style[1] + padding + title.decode("utf-8") + padding + box_style[1]
+    top = box_style[0] + box_style[1] + padding + title + padding + box_style[1]
     
     #this is inefficient, look into re methods
     while len(top) < longest_line:
@@ -199,14 +204,14 @@ def print_line(style="single", width=80):
     :param style: set line style to "single|bold|double" (default: "single)
     :param width: set line width (default: 80)
     '''
-    styles = {"double": "═", "single": "─", "bold": "━"}
+    styles = {"double": u"═", "single": u"─", "bold": u"━"}
     
     # check to make sure the style is valid, else default to single
     if style not in styles:
         style = "single"
     
     #set and decode
-    line_style = styles[style].decode("utf-8")
+    line_style = styles[style]
     
     line = "\n"
     while len(line) < width:
@@ -216,7 +221,7 @@ def print_line(style="single", width=80):
     print(line)
     
 def print_error(simple_errorstring, exception, explanation):
-    '''
+    '''"./parsed-" + time_
     Prints consistent, well formatted exception messages.
     :string simple_errorstring: the short, user readable explanation of the failure
     :Exception exception: the exception object thrown
@@ -224,15 +229,14 @@ def print_error(simple_errorstring, exception, explanation):
                             or an in-depth explanation
     '''
     print_box(simple_errorstring + ": " + str(exception) + "\n" + explanation + \
-                "\n" + ERROR_CONTACT_MAINTAINER, title="❗")
+                "\n" + ERROR_CONTACT_MAINTAINER, title=u"❗")
     
-def color_string(word, string, start):
-    index = string.find(word, start)
+def color_string(str_, substr, start):
+    index = string.find(str_[start:], substr)    
+    new_string = str_[:(index + start)] + START_HIGHLIGHT + str_[(index + start):(index + start + len(substr))] + \
+                    END_HIGHLIGHT + str_[start+len(substr):]
     
-    new_string = string[:index] + START_HIGHLIGHT + string[index:index+len(word)] + \
-                    END_HIGHLIGHT + string[index+len(word):]
-    
-    return new_string, index
+    return new_string
 
 def load_all(path):
     print_box("Beginning flat Greek parser. \n \
@@ -249,10 +253,17 @@ def load_all(path):
     #try to create a timestamped file of the result
     try:
         time_ = datetime.datetime.now().strftime('%b-%d-%I%M%p-%G')
-        new_file = open("./parsed-" + time_ , "w")
+        suffix = 1
+        suffix_str = ""
+        while os.path.isfile("./parsed-" + time_ + suffix_str):
+            suffix_str = " (" + str(suffix) + ")"
+            suffix += 1
+            
+        new_file = open("./parsed-" + time_ + suffix_str, "w")
+        
     except Exception, e:
-        print_error("Failed to create ./parsed-" + time_, e, "Make sure you have write access \
-                        to the directory you are currently in.")
+        print_error(u"Failed to create ./parsed-" + time_ + " (" + str(suffix) + ")", e, u"Make sure you have write access" \
+                    + "to the directory you are currently in.")
         res = 1
     
     #try to load the specified file
@@ -285,110 +296,133 @@ def add_word(corpus, word):
     
     if valid:
         corpus.add_to_corpus(new_word.decode("utf-8"))
+        
+def unicode_iterable_to_string(unicode_iterable):
+    string_ = "[\n"
+    for item in unicode_iterable:
+        string_ += re.sub(r"([\n])", r'\\n', item) + ", \n"
+         
+    return string_[:-2] + "\n]"
 
-def parse_file(path):
+def parse_file(path, verbose=False):
     choice, corpus_, file_, new_file = load_all(path)
+    
+    #decode the file from bytestring to unicode
+    file_ = file_.decode("utf-8")
     
     #if errors occured
     if choice == 1:
         return choice
     
-    #split on periods, keep track of current
-    sentences = [s for s in file_.split(".") if s != "\n"]
+    #create parsed file variable to save changes to
+    parsed_file = file_
+    
+    #build sentence regex
+    sentence_regex = '|'.join(map(re.escape, [".", "?", "!"]))
+    
+    #split on sentence delimiters, keep track of current # if s != "\n"
+    sentences = [s for s in re.split(sentence_regex, file_)]
+        
     sentence_tot = len(sentences)
     current_sentence = 0
     
     #regex generation for splitting
-    regex_pattern = '|'.join(map(re.escape, [" ", ",", "?", "!", "\"", "\'", "\\", "\/"]))
+    word_regex = '|'.join(map(re.escape, [" ", ",", "?", "!", "\"", "'", "\\", "/", ";", ":", "-"]))
     
     parsed_sentence = ""
-    parsed_file = ""
-    current_col = 0
-    last_save = 0
+    file_col = 0
+    
     for sentence in sentences:
+        sentence_col = 0
+        
+        #increment counter and set next sentence
         current_sentence += 1
-        
-        #write previously parse sentence
-        new_file.write(parsed_sentence[last_save:])
-        
-        current_col = 0
-        last_save = 0
-        
         parsed_sentence = sentence
-
-        for word in re.split(regex_pattern, sentence):            
-            #reset choice for next word
-            choice = ""
-
-            if (word != "" and word != "," and word != "?" and word != ";" and 
-                word != ":" and word != "-" and word != "\"" and word != "\'" and 
-                word != "\\" and word != "/"):
-                #print line for clairity
-                print_line("bold", width=120)
+        
+        #reset choice to None
+        choice = None
+        
+        for word in re.split(word_regex, sentence):
+                        
+            #print line for clairity
+            print_line("bold", width=120)
             
-                #get pointer string
-                colored_string, current_col = color_string(word, parsed_sentence, current_col)
+            #get pointer string
+            colored_string = color_string(parsed_sentence, word, sentence_col)
 
+            #get options and sort
+            choices = lookup_word(corpus_, word)
+            
+            #reset choice to None
+            choice = None
+            
+            #if we find matching words that aren't empty
+            if choices is not None and (u'', 1.0) not in choices:
+                
                 #print sentence number, sentence, and line to keep things clear
                 print_box(colored_string, title="Parsing sentence (" + str(current_sentence) + " of " + str(sentence_tot) + ")", pad=1)
-
-                #get options and sort
-                choices = lookup_word(corpus_, word)
                 
-                #if we find matching words
-                if choices is not None:
-                    #loop until valid selection given
-                    error_string = ""
-                    done_with_word = False
-                    while done_with_word is False:
-                        #print options
-                        print(choices_string(word, choices))
+                #loop until valid selection given
+                error_string = ""
+                done_with_word = False
+                
+                while done_with_word is False:
+                    #print options
+                    print(choices_string(word, choices))
+                    
+                    #get raw input and try to make int or command
+                    error_string, choice = get_choice(choices)
+                    
+                    #if our choice is valid
+                    if error_string is "":
                         
-                        #get raw input and try to make int or command
-                        error_string, choice = get_choice(choices)
+                        if isinstance(choice, str) and len(choice) != 1:
+                            print(choice)
+                            
+                        if choice == 'q':
+                            new_file.write(parsed_file.encode("utf-8"))
+                            return 0
                         
-                        #if our choice is valid
-                        if error_string is "":
-                            
-                            if isinstance(choice, str) and len(choice) != 1:
-                                print(choice)
+                        elif choice == 'a':
+                            add_word(corpus_, word)
+
+                        #if our input is a number
+                        try:
+                            if not isinstance(choice, str):
+                                #get chosen word for CWord item
+                                chosen_word = choices[choice - 1][0]
                                 
-                            if choice == 'q':
-                                new_file.write(parsed_sentence[:current_col])
-                                return 0
-                            
-                            elif choice == 'a':
-                                add_word(corpus_, word)
+                                print("Replacing " + word + " with " + chosen_word + "\n")
+
+                                #update parsed_sentence and parsed_file
+                                parsed_sentence = parsed_sentence[:sentence_col] + \
+                                    parsed_sentence[sentence_col:].replace(word, chosen_word, 1)
+                                parsed_file = parsed_file[:file_col] + \
+                                    parsed_file[file_col:].replace(word, chosen_word, 1)
                                 
-                            elif choice == 's':
-                                if current_col == last_save:
-                                    print("File is already up to date\n")
-                                else:
-                                    print_box("Saving work to " + new_file.name + ".", 
-                                                "Saving File")
-                                    print(parsed_sentence[last_save:current_col])
-                                    new_file.write(parsed_sentence[last_save:current_col])
-                                    last_save = current_col
+                                #move char pointer
+                                sentence_col += len(word)
+                                file_col += len(word) 
+                                
+                                done_with_word = True
+                                
+                        except KeyError:
+                            print("derp")
+                    else:                
+                        sentence_col += len(word)
+                        file_col += len(word)
+                        print(error_string)
+
+            else:
+                #if it isn't a word, increment pointer anyway so we know which char we're on
+                sentence_col += len(word)
+                file_col += len(word)
+            
+            #to account for regex split
+            sentence_col += 1
+            file_col += 1
         
-                            #if our input is a number
-                            try:
-                                if not isinstance(choice, str):
-                                    print("Replacing " + word + " with " + choices[choice - 1][0].encode( 'utf-8', 'ignore' ) + "\n")
-                                    parsed_sentence = parsed_sentence[:current_col] + \
-                                        parsed_sentence[current_col:].replace(word, choices[choice - 1][0].encode('utf-8', 'ignore'), 1)
-                                    current_col += len(word)
-                                    done_with_word = True
-                                    
-                            except KeyError:
-                                print("derp")
-                        else:
-                            print(error_string)
-        #save sentence to file
-        parsed_file += parsed_sentence + ". "
-        new_file.write(parsed_sentence + ". ")
-        
-    
-    new_file.write(parsed_file[:-2])
+    new_file.write(parsed_file.encode("utf-8"))
                     
     corpus_file = open(CORPUS_LOCATION, "w")
     pickle.dump(corpus_, corpus_file)
