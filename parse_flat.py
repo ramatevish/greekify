@@ -8,6 +8,7 @@ import textwrap
 import datetime
 import string
 import os
+import codecs
 
 CORPUS_LOCATION = u"./corpus.pickle"
 MAINTAINER_EMAIL = u"alexandermatevish@gmail.com"
@@ -259,7 +260,7 @@ def load_all(path):
             suffix_str = " (" + str(suffix) + ")"
             suffix += 1
             
-        new_file = open("./parsed-" + time_ + suffix_str, "w")
+        new_file = codecs.open("./parsed-" + time_ + suffix_str, "w", "utf-8")
         
     except Exception, e:
         print_error(u"Failed to create ./parsed-" + time_ + " (" + str(suffix) + ")", e, u"Make sure you have write access" \
@@ -380,7 +381,7 @@ def parse_file(path, verbose=False):
                             print(choice)
                             
                         if choice == 'q':
-                            new_file.write(parsed_file.encode("utf-8"))
+                            new_file.write(parsed_file)
                             return 0
                         
                         elif choice == 'a':
@@ -422,7 +423,7 @@ def parse_file(path, verbose=False):
             sentence_col += 1
             file_col += 1
         
-    new_file.write(parsed_file.encode("utf-8"))
+    new_file.write(parsed_file)
                     
     corpus_file = open(CORPUS_LOCATION, "w")
     pickle.dump(corpus_, corpus_file)
